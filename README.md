@@ -8,7 +8,7 @@ A TypeScript backend service that receives real-time order events from a Clover 
 - Zod-based environment validation
 - Structured logging with `pino`
 - Services for interacting with Clover and Lightspeed APIs
-- Optional AWS SQS queue integration for async order handling
+- Optional AWS SQS queue integration for async order handling (`npm run worker`)
 - Order mapper to translate Clover line items into Lightspeed sale payloads
 - Webhook endpoint scaffolded for Clover order notifications
 - TypeScript build + lint scripts
@@ -66,6 +66,14 @@ A TypeScript backend service that receives real-time order events from a Clover 
    npm start
    ```
 
+6. **Run the queue worker (optional)**
+
+   Requires `QUEUE_URL` and `AWS_REGION` to be configured.
+
+   ```bash
+   npm run worker
+   ```
+
 ## Webhook Endpoint
 
 - `POST /webhooks/clover/orders`
@@ -84,6 +92,7 @@ A TypeScript backend service that receives real-time order events from a Clover 
 - `src/mappers/order.mapper.ts`: Clover → Lightspeed order transformer
 - `src/lib/logger.ts`: Shared logger instance
 - `src/middleware/error-handler.ts`: Centralized error handling
+- `src/worker.ts`: Long-polling SQS worker that processes queued orders
 
 ## Next Steps
 
