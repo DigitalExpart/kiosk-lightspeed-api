@@ -9,3 +9,5 @@ pnpm-debug.log*
 .idea/
 .vscode/
 coverage/
+*.lcov
+.nyc_output
