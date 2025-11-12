@@ -3,7 +3,9 @@ import express from "express";
 import helmet from "helmet";
 
 import { env } from "./config/env";
+import { OrderDeduplicator } from "./lib/order-deduplicator";
 import { errorHandler } from "./middleware/error-handler";
+import { requestLogger } from "./middleware/request-logger";
 import { createHealthRouter } from "./routes/health";
 import { createWebhookRouter } from "./routes/webhooks";
 import { CloverService } from "./services/clover.service";
@@ -17,6 +19,7 @@ export const createServer = async () => {
   app.disable("x-powered-by");
   app.use(helmet());
   app.use(cors());
+  app.use(requestLogger);
   app.use(
     express.json({
       limit: "2mb",
@@ -30,6 +33,7 @@ export const createServer = async () => {
   const cloverService = new CloverService(env);
   const lightspeedService = new LightspeedService(env);
   const orderMapper = new OrderMapper();
+  const deduplicator = new OrderDeduplicator();
 
   app.use("/health", createHealthRouter());
   const queueService = env.USE_QUEUE ? new OrderQueueService(env) : undefined;
@@ -39,6 +43,7 @@ export const createServer = async () => {
     lightspeedService,
     orderMapper,
     env,
+    deduplicator,
   };
 
   if (queueService) {

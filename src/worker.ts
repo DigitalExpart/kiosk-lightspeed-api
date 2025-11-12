@@ -2,6 +2,7 @@ import { ReceiveMessageCommand, DeleteMessageCommand, SQSClient } from "@aws-sdk
 
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
+import { OrderDeduplicator } from "./lib/order-deduplicator";
 import { OrderMapper } from "./mappers/order.mapper";
 import { OrderProcessorService } from "./services/order-processor.service";
 import type { QueueOrderPayload } from "./services/order-queue.service";
@@ -25,11 +26,13 @@ const start = async () => {
   const cloverService = new CloverService(env);
   const lightspeedService = new LightspeedService(env);
   const orderMapper = new OrderMapper();
+  const deduplicator = new OrderDeduplicator();
   const processor = new OrderProcessorService({
     cloverService,
     lightspeedService,
     orderMapper,
     env,
+    deduplicator,
   });
 
   logger.info({ queueUrl: env.QUEUE_URL }, "Starting SQS order worker");

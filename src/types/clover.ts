@@ -4,6 +4,7 @@ export interface CloverOrderItem {
   price: number;
   quantity: number;
   modifiers?: Array<{ id: string; name: string; price: number }>;
+  discounts?: Array<{ id: string; name: string; amount: number }>;
 }
 
 export interface CloverOrder {
@@ -15,6 +16,7 @@ export interface CloverOrder {
   taxAmount?: number;
   tipAmount?: number;
   items: CloverOrderItem[];
+  discounts?: Array<{ id: string; name: string; amount: number }>;
   customerId?: string;
   tenderId?: string;
   raw: Record<string, unknown>;

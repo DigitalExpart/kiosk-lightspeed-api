@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clover-lightspeed-bridge
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=4000
+      # Clover Configuration
+      - CLOVER_MERCHANT_ID=${CLOVER_MERCHANT_ID}
+      - CLOVER_ACCESS_TOKEN=${CLOVER_ACCESS_TOKEN}
+      - CLOVER_WEBHOOK_SECRET=${CLOVER_WEBHOOK_SECRET}
+      # Lightspeed Configuration
+      - LIGHTSPEED_ACCOUNT_ID=${LIGHTSPEED_ACCOUNT_ID}
+      - LIGHTSPEED_PERSONAL_TOKEN=${LIGHTSPEED_PERSONAL_TOKEN}
+      - LIGHTSPEED_SHOP_ID=${LIGHTSPEED_SHOP_ID}
+      - LIGHTSPEED_EMPLOYEE_ID=${LIGHTSPEED_EMPLOYEE_ID:-}
+      - LIGHTSPEED_REGISTER_ID=${LIGHTSPEED_REGISTER_ID:-}
+      # Optional: Queue Configuration
+      - QUEUE_URL=${QUEUE_URL:-}
+      - AWS_REGION=${AWS_REGION:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - bridge-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clover-lightspeed-worker
+    command: node dist/worker.js
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      # Clover Configuration
+      - CLOVER_MERCHANT_ID=${CLOVER_MERCHANT_ID}
+      - CLOVER_ACCESS_TOKEN=${CLOVER_ACCESS_TOKEN}
+      # Lightspeed Configuration
+      - LIGHTSPEED_ACCOUNT_ID=${LIGHTSPEED_ACCOUNT_ID}
+      - LIGHTSPEED_PERSONAL_TOKEN=${LIGHTSPEED_PERSONAL_TOKEN}
+      - LIGHTSPEED_SHOP_ID=${LIGHTSPEED_SHOP_ID}
+      - LIGHTSPEED_EMPLOYEE_ID=${LIGHTSPEED_EMPLOYEE_ID:-}
+      - LIGHTSPEED_REGISTER_ID=${LIGHTSPEED_REGISTER_ID:-}
+      # Required for Worker
+      - QUEUE_URL=${QUEUE_URL}
+      - AWS_REGION=${AWS_REGION}
+    restart: unless-stopped
+    networks:
+      - bridge-network
+    profiles:
+      - worker
+
+networks:
+  bridge-network:
+    driver: bridge
+

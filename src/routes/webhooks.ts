@@ -3,11 +3,14 @@ import { z } from "zod";
 
 import type { Env } from "../config/env";
 import { logger } from "../lib/logger";
+import type { OrderDeduplicator } from "../lib/order-deduplicator";
+import { strictWebhookRateLimiter } from "../middleware/rate-limiter";
 import type { OrderMapper } from "../mappers/order.mapper";
 import type { CloverService } from "../services/clover.service";
 import type { LightspeedService } from "../services/lightspeed.service";
 import type { OrderQueueService } from "../services/order-queue.service";
 import { OrderProcessorService } from "../services/order-processor.service";
+import type { OrderProcessorDependencies } from "../services/order-processor.service";
 import type { RawBodyRequest } from "../types/express";
 
 const CloverWebhookSchema = z.object({
@@ -17,11 +20,15 @@ const CloverWebhookSchema = z.object({
   payload: z.record(z.string(), z.any()).optional(),
 });
 
+// Valid event types for order processing
+const VALID_ORDER_EVENT_TYPES = ["ORDER_CREATED", "ORDER_UPDATED", "ORDER"];
+
 export interface WebhookRouterDependencies {
   cloverService: CloverService;
   lightspeedService: LightspeedService;
   orderMapper: OrderMapper;
   env: Env;
+  deduplicator?: OrderDeduplicator;
   queueService?: OrderQueueService;
 }
 
@@ -30,17 +37,22 @@ export const createWebhookRouter = ({
   lightspeedService,
   orderMapper,
   env,
+  deduplicator,
   queueService,
 }: WebhookRouterDependencies) => {
   const router = Router();
-  const processor = new OrderProcessorService({
+  const processorDeps: OrderProcessorDependencies = {
     cloverService,
     lightspeedService,
     orderMapper,
     env,
-  });
+    ...(deduplicator && { deduplicator }),
+  };
 
-  router.post("/clover/orders", async (req, res, next) => {
+  const processor = new OrderProcessorService(processorDeps);
+
+  // Apply rate limiting to webhook endpoint
+  router.post("/clover/orders", strictWebhookRateLimiter, async (req, res, next) => {
     try {
       const rawBody = (req as RawBodyRequest).rawBody ?? JSON.stringify(req.body);
       const signature =
@@ -52,7 +64,19 @@ export const createWebhookRouter = ({
 
       const event = CloverWebhookSchema.parse(req.body);
 
-      logger.info({ eventId: event.id, orderId: event.objectId }, "Processing Clover order event");
+      // Validate event type - only process order-related events
+      if (!VALID_ORDER_EVENT_TYPES.includes(event.type)) {
+        logger.info(
+          { eventId: event.id, eventType: event.type, orderId: event.objectId },
+          "Skipping non-order event"
+        );
+        return res.status(200).json({ message: "Event type not processed" });
+      }
+
+      logger.info(
+        { eventId: event.id, eventType: event.type, orderId: event.objectId },
+        "Processing Clover order event"
+      );
 
       if (queueService) {
         await queueService.enqueue(event.objectId);

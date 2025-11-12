@@ -1,6 +1,8 @@
-import axios, { type AxiosInstance } from "axios";
+import axios, { type AxiosInstance, type AxiosError } from "axios";
 
 import type { Env } from "../config/env";
+import { logger } from "../lib/logger";
+import { withRetry } from "../lib/retry";
 import type { LightspeedSalePayload } from "../types/lightspeed";
 
 export class LightspeedService {
@@ -28,8 +30,57 @@ export class LightspeedService {
   }
 
   async createSale(payload: LightspeedSalePayload) {
-    await this.client.post("/Sale.json", {
-      Sale: payload,
-    });
+    try {
+      const response = await withRetry(
+        async () => {
+          return await this.client.post("/Sale.json", {
+            Sale: payload,
+          });
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 1000,
+        }
+      );
+
+      logger.info(
+        { saleId: response.data?.Sale?.saleID, referenceNumber: payload.referenceNumber },
+        "Sale created successfully in Lightspeed"
+      );
+
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<{ httpCode?: number; httpMessage?: string; message?: string }>;
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const errorData = axiosError.response.data;
+
+        logger.error(
+          {
+            status,
+            errorData,
+            referenceNumber: payload.referenceNumber,
+            url: axiosError.config?.url,
+          },
+          "Lightspeed API error"
+        );
+
+        const errorMessage =
+          errorData?.message ||
+          errorData?.httpMessage ||
+          `Lightspeed API error: ${status} ${axiosError.response.statusText}`;
+
+        throw new Error(errorMessage);
+      }
+
+      if (axiosError.request) {
+        logger.error({ referenceNumber: payload.referenceNumber }, "No response from Lightspeed API");
+        throw new Error("No response from Lightspeed API - network error");
+      }
+
+      logger.error({ error: axiosError, referenceNumber: payload.referenceNumber }, "Error creating sale in Lightspeed");
+      throw error;
+    }
   }
 }
