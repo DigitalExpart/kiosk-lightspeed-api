@@ -44,8 +44,11 @@ A TypeScript backend service that receives real-time order events from a Clover 
    - `CLOVER_ACCESS_TOKEN`
    - `CLOVER_WEBHOOK_SECRET` (or `WEBHOOK_SIGNATURE_SECRET`)
    - `LIGHTSPEED_ACCOUNT_ID`
-   - `LIGHTSPEED_PERSONAL_TOKEN`
    - `LIGHTSPEED_SHOP_ID`
+   - **Either** `LIGHTSPEED_PERSONAL_TOKEN` **or** OAuth credentials:
+     - `LIGHTSPEED_CLIENT_ID`
+     - `LIGHTSPEED_CLIENT_SECRET`
+     - `LIGHTSPEED_REFRESH_TOKEN`
 
    **Optional for asynchronous processing**
 
@@ -148,6 +151,27 @@ The mapper comprehensively handles:
 - Validation errors returned as 400 Bad Request
 - API errors logged with full context for debugging
 
+### Lightspeed OAuth Support
+
+The service supports both **personal tokens** and **OAuth authentication** for Lightspeed:
+
+#### OAuth Mode (Recommended for Production)
+When OAuth credentials are provided (`LIGHTSPEED_CLIENT_ID`, `LIGHTSPEED_CLIENT_SECRET`, `LIGHTSPEED_REFRESH_TOKEN`), the service:
+- **Automatically refreshes** access tokens using refresh tokens
+- **Caches tokens** in memory and refreshes 1 minute before expiration
+- **Handles 401 errors** by automatically refreshing the token and retrying the request
+- **Prevents concurrent refreshes** by queuing requests during token refresh
+- **Updates refresh tokens** when Lightspeed provides a new one
+- **Uses retry logic** for token refresh API calls
+
+#### Personal Token Mode (Fallback)
+If OAuth credentials are not provided, the service uses `LIGHTSPEED_PERSONAL_TOKEN`:
+- Simpler setup for development/testing
+- No automatic token refresh (tokens don't expire)
+- Less secure for production use
+
+**Note**: OAuth is preferred for production as it provides better security and automatic token management.
+
 ## Docker Deployment
 
 ### Build and Run with Docker
@@ -187,7 +211,7 @@ The `docker-compose.yml` includes:
 - ✅ ~~Expand the mapper to cover modifiers, discounts, and taxes comprehensively~~ (Completed)
 - ✅ ~~Add rate limiting middleware for webhook endpoints~~ (Completed)
 - ✅ ~~Add Docker support for containerized deployment~~ (Completed)
-- Implement Lightspeed OAuth flow (instead of personal token) for long-term credentials
+- ✅ ~~Implement Lightspeed OAuth flow (instead of personal token) for long-term credentials~~ (Completed)
 - Consider Redis-based duplicate detection for distributed deployments
 
 ## Deployment Notes
