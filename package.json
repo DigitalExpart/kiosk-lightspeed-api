@@ -13,7 +13,9 @@
     "start:worker": "node dist/worker.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:clover": "ts-node scripts/test-clover-connection.ts",
+    "test:lightspeed": "ts-node scripts/test-lightspeed-connection.ts"
   },
   "keywords": [
     "clover",
