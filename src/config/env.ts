@@ -12,7 +12,8 @@ const EnvSchema = z
     CLOVER_MERCHANT_ID: z.string().optional(),
     CLOVER_ACCESS_TOKEN: z.string().optional(),
     CLOVER_WEBHOOK_SECRET: z.string().optional(),
-    LIGHTSPEED_ACCOUNT_ID: z.string().optional(),
+    LIGHTSPEED_ACCOUNT_ID: z.string().optional(), // For R-Series only
+    LIGHTSPEED_DOMAIN: z.string().optional(), // For X-Series (e.g., nutricentro.retail.lightspeed.app)
     LIGHTSPEED_CLIENT_ID: z.string().optional(),
     LIGHTSPEED_CLIENT_SECRET: z.string().optional(),
     LIGHTSPEED_REFRESH_TOKEN: z.string().optional(),

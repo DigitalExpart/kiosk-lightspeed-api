@@ -27,14 +27,17 @@ export class LightspeedTokenManager {
       );
     }
 
-    if (!env.LIGHTSPEED_ACCOUNT_ID) {
-      throw new Error("LIGHTSPEED_ACCOUNT_ID must be configured");
+    // X-Series uses domain, R-Series uses account ID
+    if (!env.LIGHTSPEED_DOMAIN && !env.LIGHTSPEED_ACCOUNT_ID) {
+      throw new Error(
+        "Either LIGHTSPEED_DOMAIN (for X-Series) or LIGHTSPEED_ACCOUNT_ID (for R-Series) must be configured"
+      );
     }
 
     this.clientId = env.LIGHTSPEED_CLIENT_ID;
     this.clientSecret = env.LIGHTSPEED_CLIENT_SECRET;
     this.refreshToken = env.LIGHTSPEED_REFRESH_TOKEN;
-    this.accountId = env.LIGHTSPEED_ACCOUNT_ID;
+    this.accountId = env.LIGHTSPEED_ACCOUNT_ID || ""; // Not used for X-Series but kept for compatibility
   }
 
   /**

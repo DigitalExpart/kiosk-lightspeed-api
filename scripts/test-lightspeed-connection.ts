@@ -9,6 +9,7 @@ import axios from "axios";
 config();
 
 const LIGHTSPEED_ACCOUNT_ID = process.env.LIGHTSPEED_ACCOUNT_ID;
+const LIGHTSPEED_DOMAIN = process.env.LIGHTSPEED_DOMAIN;
 const LIGHTSPEED_PERSONAL_TOKEN = process.env.LIGHTSPEED_PERSONAL_TOKEN;
 const LIGHTSPEED_SHOP_ID = process.env.LIGHTSPEED_SHOP_ID;
 
@@ -23,61 +24,37 @@ async function testLightspeedConnection() {
     process.exit(1);
   }
 
-  let accountId = LIGHTSPEED_ACCOUNT_ID;
+  // Determine if X-Series (domain) or R-Series (account ID)
+  const isXSeries = Boolean(LIGHTSPEED_DOMAIN);
+  const isRSeries = Boolean(LIGHTSPEED_ACCOUNT_ID);
 
-  // Try to get account ID from API if not set
-  if (!accountId) {
-    console.log("⚠️  LIGHTSPEED_ACCOUNT_ID not set, attempting to retrieve from API...\n");
-    try {
-      // Try to get account info using a generic endpoint
-      const response = await axios.get(
-        "https://api.lightspeedapp.com/API/Account.json",
-        {
-          headers: {
-            Authorization: `Bearer ${LIGHTSPEED_PERSONAL_TOKEN}`,
-            Accept: "application/json",
-          },
-        }
-      );
-      
-      if (response.data?.Account?.accountID) {
-        accountId = response.data.Account.accountID;
-        console.log(`✅ Found Account ID: ${accountId}\n`);
-        console.log("💡 Add this to your .env file:");
-        console.log(`   LIGHTSPEED_ACCOUNT_ID=${accountId}\n`);
-      }
-    } catch (error: any) {
-      console.error("❌ Could not retrieve Account ID automatically");
-      console.error("   Please set LIGHTSPEED_ACCOUNT_ID in your .env file");
-      console.error("   You can find it in your Lightspeed dashboard\n");
-      process.exit(1);
-    }
+  if (!isXSeries && !isRSeries) {
+    console.error("❌ Either LIGHTSPEED_DOMAIN (X-Series) or LIGHTSPEED_ACCOUNT_ID (R-Series) must be set");
+    console.error("\n💡 For X-Series, add to .env:");
+    console.error("   LIGHTSPEED_DOMAIN=nutricentro.retail.lightspeed.app");
+    process.exit(1);
   }
 
-  console.log("🔍 Testing Lightspeed API connection...");
-  console.log(`Account ID: ${accountId}`);
-  console.log(`Shop ID: ${LIGHTSPEED_SHOP_ID}\n`);
+  let baseURL: string;
+  if (isXSeries) {
+    const domain = LIGHTSPEED_DOMAIN!.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    baseURL = `https://${domain}/API`;
+    console.log("🔍 Testing Lightspeed X-Series API connection...");
+    console.log(`Domain: ${domain}`);
+  } else {
+    baseURL = `https://api.lightspeedapp.com/API/Account/${LIGHTSPEED_ACCOUNT_ID}`;
+    console.log("🔍 Testing Lightspeed R-Series API connection...");
+    console.log(`Account ID: ${LIGHTSPEED_ACCOUNT_ID}`);
+  }
+  
+  console.log(`Shop ID: ${LIGHTSPEED_SHOP_ID}`);
+  console.log(`Base URL: ${baseURL}\n`);
 
   try {
-    // Test 1: Get account info
-    console.log("Test 1: Fetching account information...");
-    const accountResponse = await axios.get(
-      `https://api.lightspeedapp.com/API/Account/${accountId}.json`,
-      {
-        headers: {
-          Authorization: `Bearer ${LIGHTSPEED_PERSONAL_TOKEN}`,
-          Accept: "application/json",
-        },
-      }
-    );
-
-    console.log("✅ Account Info Retrieved:");
-    console.log(`   Account: ${accountResponse.data.Account?.name || "N/A"}\n`);
-
-    // Test 2: Get shop info
-    console.log("Test 2: Fetching shop information...");
+    // Test 1: Get shop info (works for both X and R series)
+    console.log("Test 1: Fetching shop information...");
     const shopResponse = await axios.get(
-      `https://api.lightspeedapp.com/API/Account/${accountId}/Shop/${LIGHTSPEED_SHOP_ID}.json`,
+      `${baseURL}/Shop/${LIGHTSPEED_SHOP_ID}.json`,
       {
         headers: {
           Authorization: `Bearer ${LIGHTSPEED_PERSONAL_TOKEN}`,
@@ -89,13 +66,13 @@ async function testLightspeedConnection() {
     console.log("✅ Shop Info Retrieved:");
     console.log(`   Shop: ${shopResponse.data.Shop?.name || "N/A"}\n`);
 
-    // Test 3: Test creating a sale (dry run - we'll just check if we can access the endpoint)
-    console.log("Test 3: Testing sale creation endpoint access...");
+    // Test 2: Test creating a sale (dry run - we'll just check if we can access the endpoint)
+    console.log("Test 2: Testing sale creation endpoint access...");
     try {
       // We'll make a minimal request to see if the endpoint is accessible
       // This will likely fail with validation error, but that's okay - we just want to check auth
       await axios.post(
-        `https://api.lightspeedapp.com/API/Account/${accountId}/Sale.json`,
+        `${baseURL}/Sale.json`,
         {
           Sale: {
             shopID: LIGHTSPEED_SHOP_ID,

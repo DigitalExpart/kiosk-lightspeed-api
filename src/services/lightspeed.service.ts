@@ -12,8 +12,14 @@ export class LightspeedService {
   private useOAuth: boolean;
 
   constructor(private readonly env: Env) {
-    if (!env.LIGHTSPEED_ACCOUNT_ID) {
-      throw new Error("LIGHTSPEED_ACCOUNT_ID must be configured");
+    // Determine if using X-Series (domain-based) or R-Series (account ID-based)
+    const isXSeries = Boolean(env.LIGHTSPEED_DOMAIN);
+    const isRSeries = Boolean(env.LIGHTSPEED_ACCOUNT_ID);
+
+    if (!isXSeries && !isRSeries) {
+      throw new Error(
+        "Either LIGHTSPEED_DOMAIN (for X-Series) or LIGHTSPEED_ACCOUNT_ID (for R-Series) must be configured"
+      );
     }
 
     // Check if OAuth credentials are available
@@ -47,9 +53,22 @@ export class LightspeedService {
       logger.info("Using Lightspeed personal token authentication");
     }
 
+    // Determine base URL based on series type
+    let baseURL: string;
+    if (isXSeries) {
+      // X-Series uses domain-based URL
+      const domain = env.LIGHTSPEED_DOMAIN!.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      baseURL = `https://${domain}/API`;
+      logger.info({ domain, baseURL }, "Using Lightspeed X-Series (domain-based)");
+    } else {
+      // R-Series uses account ID-based URL
+      baseURL = `https://api.lightspeedapp.com/API/Account/${env.LIGHTSPEED_ACCOUNT_ID}`;
+      logger.info({ accountId: env.LIGHTSPEED_ACCOUNT_ID, baseURL }, "Using Lightspeed R-Series (account ID-based)");
+    }
+
     // Create axios instance - token will be set dynamically for OAuth
     this.client = axios.create({
-      baseURL: `https://api.lightspeedapp.com/API/Account/${env.LIGHTSPEED_ACCOUNT_ID}`,
+      baseURL,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",

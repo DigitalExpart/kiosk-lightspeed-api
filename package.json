@@ -15,7 +15,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:clover": "ts-node scripts/test-clover-connection.ts",
-    "test:lightspeed": "ts-node scripts/test-lightspeed-connection.ts"
+    "test:lightspeed": "ts-node scripts/test-lightspeed-connection.ts",
+    "get:account-id": "ts-node scripts/get-lightspeed-account-id.ts"
   },
   "keywords": [
     "clover",
