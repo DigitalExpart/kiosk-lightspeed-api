@@ -7,10 +7,11 @@ const EnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     PORT: z.coerce.number().int().positive().default(4000),
-    CLOVER_APP_ID: z.string().min(1, "CLOVER_APP_ID is required").optional(),
-    CLOVER_APP_SECRET: z.string().min(1, "CLOVER_APP_SECRET is required").optional(),
+    CLOVER_APP_ID: z.string().optional(),
+    CLOVER_APP_SECRET: z.string().optional(),
     CLOVER_MERCHANT_ID: z.string().optional(),
     CLOVER_ACCESS_TOKEN: z.string().optional(),
+    CLOVER_REFRESH_TOKEN: z.string().optional(),
     CLOVER_WEBHOOK_SECRET: z.string().optional(),
     LIGHTSPEED_ACCOUNT_ID: z.string().optional(), // For R-Series only
     LIGHTSPEED_DOMAIN: z.string().optional(), // For X-Series (e.g., nutricentro.retail.lightspeed.app)
@@ -22,7 +23,7 @@ const EnvSchema = z
     LIGHTSPEED_EMPLOYEE_ID: z.string().optional(),
     LIGHTSPEED_REGISTER_ID: z.string().optional(),
     WEBHOOK_SIGNATURE_SECRET: z.string().optional(),
-    QUEUE_URL: z.string().url().optional(),
+    QUEUE_URL: z.string().url().optional().or(z.literal("")),
     AWS_REGION: z.string().optional(),
   })
   .transform((value) => ({
