@@ -5,7 +5,7 @@ import type { Env } from "../config/env";
 import { logger } from "../lib/logger";
 import { withRetry } from "../lib/retry";
 import type { CloverOrder } from "../types/clover";
-import { CloverTokenManager } from "./clover-token-manager";
+import { CloverTokenManager } from "./clover-token-manager"; // OAuth token management
 
 export class CloverService {
   private readonly client: AxiosInstance;
