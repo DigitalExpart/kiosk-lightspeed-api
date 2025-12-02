@@ -56,6 +56,8 @@ export const createWebhookRouter = ({
     res.status(200).json({ message: "Webhook endpoint is active" });
   });
 
+  // POST endpoint for processing Clover order webhooks
+
   // Apply rate limiting to webhook endpoint
   router.post("/clover/orders", strictWebhookRateLimiter, async (req, res, next) => {
     try {
