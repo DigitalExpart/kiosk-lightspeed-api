@@ -51,6 +51,11 @@ export const createWebhookRouter = ({
 
   const processor = new OrderProcessorService(processorDeps);
 
+  // Handle GET requests for webhook verification (Clover may send GET to verify endpoint)
+  router.get("/clover/orders", (_req, res) => {
+    res.status(200).json({ message: "Webhook endpoint is active" });
+  });
+
   // Apply rate limiting to webhook endpoint
   router.post("/clover/orders", strictWebhookRateLimiter, async (req, res, next) => {
     try {
@@ -78,6 +83,28 @@ export const createWebhookRouter = ({
         "Processing Clover order event"
       );
 
+      // Check if webhook payload contains full order data (E-commerce API)
+      // E-commerce API webhooks may include the full order in the payload
+      if (event.payload && typeof event.payload === "object") {
+        const payload = event.payload as Record<string, unknown>;
+        
+        // Check if payload looks like an order object
+        if (payload.id || payload.lineItems || payload.total !== undefined) {
+          logger.info({ orderId: event.objectId }, "Webhook contains full order data, processing from payload");
+          
+          try {
+            // Try to parse order from payload
+            const order = cloverService.parseOrderFromPayload(payload);
+            await processor.processOrderFromPayload(order);
+            return res.status(202).json({ message: "Order accepted" });
+          } catch (error) {
+            logger.warn({ error, orderId: event.objectId }, "Failed to process order from payload, falling back to API fetch");
+            // Fall through to API fetch
+          }
+        }
+      }
+
+      // Fallback: fetch order via API (for REST API accounts or if payload doesn't contain order)
       if (queueService) {
         await queueService.enqueue(event.objectId);
         return res.status(202).json({ message: "Order queued" });
