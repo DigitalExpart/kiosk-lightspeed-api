@@ -334,7 +334,11 @@ export class CloverService {
         throw new Error("No response from Clover API - network error");
       }
 
-      logger.error({ error: axiosError, orderId }, "Error fetching order from Clover");
+      logger.error({ 
+        errorMessage: (error as Error).message,
+        errorStack: (error as Error).stack,
+        orderId 
+      }, "Error fetching order from Clover");
       throw error;
     }
   }
