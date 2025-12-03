@@ -252,8 +252,24 @@ export class CloverService {
 
           order = basicResponse.data;
           hasExpandedData = false;
-        } catch {
-          // If even basic fetch fails, rethrow original error
+        } catch (basicError) {
+          // If even basic fetch fails with 403, it means no Orders Read permission at all
+          const basicAxiosError = basicError as AxiosError;
+          if (basicAxiosError.response?.status === 403) {
+            logger.error(
+              {
+                orderId,
+                merchantId: this.env.CLOVER_MERCHANT_ID,
+                tokenPrefix: this.env.CLOVER_ACCESS_TOKEN?.substring(0, 8) + "...",
+              },
+              "Clover token has NO Orders Read permission - both expanded and basic fetch failed with 403"
+            );
+            throw new Error(
+              "Clover API token lacks Orders Read permission. " +
+                "Please go to Clover Dashboard → API Tokens → Enable 'Orders Read' permission"
+            );
+          }
+          // If different error, rethrow original
           throw error;
         }
       } else {
