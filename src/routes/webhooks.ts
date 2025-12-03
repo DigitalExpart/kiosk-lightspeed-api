@@ -52,7 +52,17 @@ export const createWebhookRouter = ({
   const processor = new OrderProcessorService(processorDeps);
 
   // Handle GET requests for webhook verification (Clover may send GET to verify endpoint)
-  router.get("/clover/orders", (_req, res) => {
+  router.get("/clover/orders", (req, res) => {
+    // Clover may send a verification challenge parameter
+    const challenge = req.query.challenge || req.query.verify_token || req.query.hub_challenge;
+    
+    if (challenge) {
+      // Echo back the challenge for verification
+      logger.info({ challenge }, "Responding to Clover webhook verification challenge");
+      return res.status(200).send(challenge);
+    }
+    
+    // Default response for health checks
     res.status(200).json({ message: "Webhook endpoint is active" });
   });
 
