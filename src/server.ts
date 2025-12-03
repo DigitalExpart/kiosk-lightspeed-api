@@ -17,6 +17,10 @@ export const createServer = async () => {
   const app = express();
 
   app.disable("x-powered-by");
+  
+  // Trust Railway proxy headers
+  app.set("trust proxy", true);
+  
   app.use(helmet());
   app.use(cors());
   app.use(requestLogger);

@@ -24,6 +24,8 @@ export const strictWebhookRateLimiter = rateLimit({
   message: "Too many webhook requests, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
+  // Trust Railway proxy headers
+  validate: { trustProxy: false },
   skip: (req) => {
     return process.env.NODE_ENV === "test";
   },
