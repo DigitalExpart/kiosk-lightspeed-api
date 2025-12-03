@@ -13,15 +13,22 @@ import { OrderProcessorService } from "../services/order-processor.service";
 import type { OrderProcessorDependencies } from "../services/order-processor.service";
 import type { RawBodyRequest } from "../types/express";
 
-const CloverWebhookSchema = z.object({
-  id: z.string(),
-  type: z.string(),
+// Clover webhook event structure (nested in merchants object)
+const CloverWebhookEventSchema = z.object({
   objectId: z.string(),
+  type: z.string(),
+  ts: z.number(),
   payload: z.record(z.string(), z.any()).optional(),
 });
 
+// Clover webhook payload structure
+const CloverWebhookSchema = z.object({
+  appId: z.string(),
+  merchants: z.record(z.string(), z.array(CloverWebhookEventSchema)),
+});
+
 // Valid event types for order processing
-const VALID_ORDER_EVENT_TYPES = ["ORDER_CREATED", "ORDER_UPDATED", "ORDER"];
+const VALID_ORDER_EVENT_TYPES = ["ORDER_CREATED", "ORDER_UPDATED", "UPDATE", "CREATE", "ORDER"];
 
 export interface WebhookRouterDependencies {
   cloverService: CloverService;
@@ -110,53 +117,72 @@ export const createWebhookRouter = ({
         return res.status(401).json({ message: "Missing authentication" });
       }
 
-      const event = CloverWebhookSchema.parse(req.body);
+      const webhook = CloverWebhookSchema.parse(req.body);
 
-      // Validate event type - only process order-related events
-      if (!VALID_ORDER_EVENT_TYPES.includes(event.type)) {
-        logger.info(
-          { eventId: event.id, eventType: event.type, orderId: event.objectId },
-          "Skipping non-order event"
-        );
-        return res.status(200).json({ message: "Event type not processed" });
-      }
+      logger.info({ appId: webhook.appId, merchantCount: Object.keys(webhook.merchants).length }, "Processing Clover webhook");
 
-      logger.info(
-        { eventId: event.id, eventType: event.type, orderId: event.objectId },
-        "Processing Clover order event"
-      );
+      // Process events for each merchant
+      const processedOrders: string[] = [];
+      for (const [merchantId, events] of Object.entries(webhook.merchants)) {
+        logger.info({ merchantId, eventCount: events.length }, "Processing events for merchant");
 
-      // Check if webhook payload contains full order data (E-commerce API)
-      // E-commerce API webhooks may include the full order in the payload
-      if (event.payload && typeof event.payload === "object") {
-        const payload = event.payload as Record<string, unknown>;
-        
-        // Check if payload looks like an order object
-        if (payload.id || payload.lineItems || payload.total !== undefined) {
-          logger.info({ orderId: event.objectId }, "Webhook contains full order data, processing from payload");
-          
+        for (const event of events) {
+          // Validate event type - only process order-related events
+          if (!VALID_ORDER_EVENT_TYPES.includes(event.type)) {
+            logger.info(
+              { eventType: event.type, orderId: event.objectId },
+              "Skipping non-order event"
+            );
+            continue;
+          }
+
+          logger.info(
+            { eventType: event.type, orderId: event.objectId, timestamp: event.ts },
+            "Processing Clover order event"
+          );
+
+          // Check if webhook payload contains full order data (E-commerce API)
+          // E-commerce API webhooks may include the full order in the payload
+          if (event.payload && typeof event.payload === "object") {
+            const payload = event.payload as Record<string, unknown>;
+            
+            // Check if payload looks like an order object
+            if (payload.id || payload.lineItems || payload.total !== undefined) {
+              logger.info({ orderId: event.objectId }, "Webhook contains full order data, processing from payload");
+              
+              try {
+                // Try to parse order from payload
+                const order = cloverService.parseOrderFromPayload(payload);
+                await processor.processOrderFromPayload(order);
+                processedOrders.push(event.objectId);
+                continue;
+              } catch (error) {
+                logger.warn({ error, orderId: event.objectId }, "Failed to process order from payload, falling back to API fetch");
+                // Fall through to API fetch
+              }
+            }
+          }
+
+          // Fallback: fetch order via API (for REST API accounts or if payload doesn't contain order)
           try {
-            // Try to parse order from payload
-            const order = cloverService.parseOrderFromPayload(payload);
-            await processor.processOrderFromPayload(order);
-            return res.status(202).json({ message: "Order accepted" });
+            if (queueService) {
+              await queueService.enqueue(event.objectId);
+            } else {
+              await processor.processByOrderId(event.objectId);
+            }
+            processedOrders.push(event.objectId);
           } catch (error) {
-            logger.warn({ error, orderId: event.objectId }, "Failed to process order from payload, falling back to API fetch");
-            // Fall through to API fetch
+            logger.error({ error, orderId: event.objectId }, "Failed to process order");
+            // Continue processing other orders even if one fails
           }
         }
       }
 
-      // Fallback: fetch order via API (for REST API accounts or if payload doesn't contain order)
-      if (queueService) {
-        await queueService.enqueue(event.objectId);
-        return res.status(202).json({ message: "Order queued" });
-      }
-
-      await processor.processByOrderId(event.objectId);
-
-
-      return res.status(202).json({ message: "Order accepted" });
+      return res.status(202).json({ 
+        message: "Webhook processed",
+        ordersProcessed: processedOrders.length,
+        orderIds: processedOrders
+      });
     } catch (error) {
       return next(error);
     }
