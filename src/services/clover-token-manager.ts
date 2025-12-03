@@ -21,21 +21,23 @@ export class CloverTokenManager {
 
   constructor(env: Env) {
     // Support both OAuth and direct token (for backward compatibility)
-    if (env.CLOVER_APP_ID && env.CLOVER_APP_SECRET) {
-      // OAuth mode
+    // Prefer direct token if available (simpler and more reliable for most use cases)
+    if (env.CLOVER_ACCESS_TOKEN) {
+      // Direct token mode
+      this.accessToken = env.CLOVER_ACCESS_TOKEN;
+      this.tokenExpiresAt = Date.now() + 86400000; // Assume 24 hours
+      this.appId = env.CLOVER_APP_ID || "";
+      this.appSecret = env.CLOVER_APP_SECRET || "";
+      logger.info("Using direct CLOVER_ACCESS_TOKEN for Clover API authentication");
+    } else if (env.CLOVER_APP_ID && env.CLOVER_APP_SECRET && env.CLOVER_REFRESH_TOKEN) {
+      // OAuth mode (requires refresh token)
       this.appId = env.CLOVER_APP_ID;
       this.appSecret = env.CLOVER_APP_SECRET;
-      this.refreshToken = env.CLOVER_REFRESH_TOKEN ?? null;
-    } else if (env.CLOVER_ACCESS_TOKEN) {
-      // Direct token mode (legacy)
-      this.accessToken = env.CLOVER_ACCESS_TOKEN;
-      this.tokenExpiresAt = Date.now() + 86400000; // Assume 24 hours, will refresh if needed
-      this.appId = "";
-      this.appSecret = "";
-      logger.warn("Using direct CLOVER_ACCESS_TOKEN. Consider migrating to OAuth for better reliability.");
+      this.refreshToken = env.CLOVER_REFRESH_TOKEN;
+      logger.info("Using Clover OAuth with refresh token");
     } else {
       throw new Error(
-        "Either CLOVER_APP_ID + CLOVER_APP_SECRET (OAuth) or CLOVER_ACCESS_TOKEN (direct) must be configured"
+        "Either CLOVER_ACCESS_TOKEN (direct) or CLOVER_APP_ID + CLOVER_APP_SECRET + CLOVER_REFRESH_TOKEN (OAuth) must be configured"
       );
     }
   }
