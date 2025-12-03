@@ -1,0 +1,50 @@
+Subject: API Token 401 Unauthorized - Merchant 179188390993
+
+Hello Clover Support,
+
+I'm experiencing persistent 401 Unauthorized errors when trying to use the Clover REST API, despite having a correctly configured API token.
+
+Merchant Information:
+- Merchant ID: 179188390993
+- Merchant Name: NUTRICENTRO
+
+Token Details:
+- Token Name: "Lightspeed Bridge"
+- Token Value: 4cd8616c-169a-8e7d-7174-b4018efc3bbc
+- Integration Type: REST API (confirmed in dashboard)
+- Token Status: Active/Enabled (toggle is on)
+- Permissions: All Read permissions enabled (Customers, Employees, Inventory, Merchant, Orders, Payments)
+
+What I've Verified:
+1. ✅ Token type is "REST API" (not Ecommerce API)
+2. ✅ Token is active/enabled in dashboard
+3. ✅ Orders Read permission is enabled
+4. ✅ Permissions were saved after configuration
+5. ✅ Cleared cache and regenerated token
+6. ✅ Tested multiple authentication methods (Bearer token, query parameter)
+7. ✅ Tested multiple API endpoints (v3/merchants, v3/orders)
+
+Error Details:
+- All API calls return: {"message": "401 Unauthorized"}
+- Tested endpoints:
+  * GET https://api.clover.com/v3/merchants/179188390993
+  * GET https://api.clover.com/v3/merchants/179188390993/orders
+- Authentication methods tried:
+  * Authorization: Bearer {token}
+  * ?access_token={token} query parameter
+  * Both methods together
+
+Request:
+Could you please verify:
+1. Is REST API access enabled for merchant account 179188390993?
+2. Are there any account-level restrictions preventing API access?
+3. Are there any IP whitelisting requirements for this token?
+4. Is the token correctly configured on your end?
+5. What is the correct authentication method for REST API private tokens?
+
+I've followed all the documentation steps, and the dashboard shows everything is configured correctly, yet I'm unable to make any API calls. This suggests there may be an account-level configuration issue.
+
+Thank you for your assistance!
+
+Best regards
+

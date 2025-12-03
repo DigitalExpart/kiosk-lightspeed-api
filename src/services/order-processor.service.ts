@@ -21,7 +21,7 @@ export class OrderProcessorService {
    * Process order from webhook payload (for E-commerce API accounts)
    */
   async processOrderFromPayload(order: CloverOrder) {
-    const { lightspeedService, orderMapper, env, deduplicator } = this.deps;
+    const { env, deduplicator } = this.deps;
 
     if (!env.LIGHTSPEED_SHOP_ID) {
       throw new Error("LIGHTSPEED_SHOP_ID must be configured");
@@ -43,7 +43,7 @@ export class OrderProcessorService {
    * Process order by fetching from API (for REST API accounts)
    */
   async processByOrderId(orderId: string) {
-    const { cloverService, lightspeedService, orderMapper, env, deduplicator } = this.deps;
+    const { cloverService, env, deduplicator } = this.deps;
 
     if (!env.LIGHTSPEED_SHOP_ID) {
       throw new Error("LIGHTSPEED_SHOP_ID must be configured");

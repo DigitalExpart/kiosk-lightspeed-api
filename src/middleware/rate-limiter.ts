@@ -9,7 +9,7 @@ export const webhookRateLimiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skip: (req) => {
+  skip: (_req) => {
     // Skip rate limiting in test environment
     return process.env.NODE_ENV === "test";
   },
@@ -26,7 +26,7 @@ export const strictWebhookRateLimiter = rateLimit({
   legacyHeaders: false,
   // Trust Railway proxy headers
   validate: { trustProxy: false },
-  skip: (req) => {
+  skip: (_req) => {
     return process.env.NODE_ENV === "test";
   },
 });

@@ -1,8 +1,9 @@
+import type { Server } from "http";
 import { createServer } from "./server";
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
 
-let server: ReturnType<typeof import("http").createServer> | null = null;
+let server: Server | null = null;
 
 const start = async () => {
   try {

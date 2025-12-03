@@ -20,7 +20,7 @@ export class CloverService {
     let tokenManager: CloverTokenManager | null = null;
     try {
       tokenManager = new CloverTokenManager(env);
-    } catch (error) {
+    } catch {
       // If OAuth not configured, fall back to direct token
       logger.warn("Clover OAuth not configured, using direct token if available");
     }

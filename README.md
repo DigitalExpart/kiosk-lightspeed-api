@@ -40,10 +40,20 @@ A TypeScript backend service that receives real-time order events from a Clover 
 
    Required values for development:
 
+   **Clover Configuration:**
    - `CLOVER_MERCHANT_ID`
-   - `CLOVER_ACCESS_TOKEN`
+   - **Either** OAuth (recommended) **or** direct token:
+     - **OAuth** (recommended for full API access):
+       - `CLOVER_APP_ID`
+       - `CLOVER_APP_SECRET`
+       - `CLOVER_ACCESS_TOKEN` (obtained via OAuth flow)
+       - `CLOVER_REFRESH_TOKEN` (obtained via OAuth flow)
+     - **Direct Token** (legacy, limited functionality):
+       - `CLOVER_ACCESS_TOKEN`
    - `CLOVER_WEBHOOK_SECRET` (or `WEBHOOK_SIGNATURE_SECRET`)
-   - `LIGHTSPEED_ACCOUNT_ID`
+
+   **Lightspeed Configuration:**
+   - **Either** `LIGHTSPEED_DOMAIN` (X-Series) **or** `LIGHTSPEED_ACCOUNT_ID` (R-Series)
    - `LIGHTSPEED_SHOP_ID`
    - **Either** `LIGHTSPEED_PERSONAL_TOKEN` **or** OAuth credentials:
      - `LIGHTSPEED_CLIENT_ID`
@@ -150,6 +160,37 @@ The mapper comprehensively handles:
 - Structured error logging
 - Validation errors returned as 400 Bad Request
 - API errors logged with full context for debugging
+
+### Clover OAuth Setup
+
+The service supports both **OAuth authentication** (recommended) and **direct tokens** (legacy) for Clover:
+
+#### OAuth Mode (Recommended - Full API Access)
+OAuth provides full REST API access and automatic token refresh. To set up:
+
+1. **Create an app in Clover Developer Dashboard**:
+   - Go to https://dev.clover.com/
+   - Create a new app and get your `CLOVER_APP_ID` and `CLOVER_APP_SECRET`
+   - Configure webhooks in your app settings
+   - See `docs/CLOVER_DEVELOPER_DASHBOARD_SETUP.md` for detailed steps
+
+2. **Run the OAuth setup script**:
+   ```bash
+   npm run setup:clover-oauth
+   ```
+   This will guide you through:
+   - Generating the authorization URL
+   - Exchanging the authorization code for tokens
+   - Saving tokens to your `.env` file
+
+3. **Configure webhooks** in your Clover app settings with your webhook URL
+
+#### Direct Token Mode (Legacy - Limited Functionality)
+If you have a direct access token, you can use it directly:
+- Set `CLOVER_ACCESS_TOKEN` in your `.env` file
+- Note: Direct tokens have limited functionality and may not work for all API endpoints
+
+**See `docs/CLOVER_DEVELOPER_DASHBOARD_SETUP.md` for complete setup instructions.**
 
 ### Lightspeed OAuth Support
 

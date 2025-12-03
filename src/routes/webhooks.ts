@@ -6,7 +6,7 @@ import { logger } from "../lib/logger";
 import type { OrderDeduplicator } from "../lib/order-deduplicator";
 import { strictWebhookRateLimiter } from "../middleware/rate-limiter";
 import type { OrderMapper } from "../mappers/order.mapper";
-import { CloverService } from "../services/clover.service";
+import type { CloverService } from "../services/clover.service";
 import type { LightspeedService } from "../services/lightspeed.service";
 import type { OrderQueueService } from "../services/order-queue.service";
 import { OrderProcessorService } from "../services/order-processor.service";
