@@ -74,25 +74,40 @@ export const createWebhookRouter = ({
       const rawBody = (req as RawBodyRequest).rawBody ?? JSON.stringify(req.body);
       const signature =
         req.header("x-clover-signature") ?? req.header("X-Clover-Signature") ?? undefined;
+      const cloverAuth = req.header("x-clover-auth") ?? undefined;
 
-      // Log all incoming requests for debugging verification issues
+      // Log all incoming requests for debugging
       logger.info({ 
         body: req.body, 
-        headers: req.headers,
-        signature: signature ? "present" : "absent"
+        hasSignature: !!signature,
+        hasCloverAuth: !!cloverAuth,
+        eventType: req.body?.type
       }, "Received webhook request");
 
-      // Handle webhook verification requests
-      // Clover may send verification with or without signature during setup
-      if (!signature) {
-        logger.info("No signature present - treating as verification request");
-        return res.status(200).json({ message: "Webhook endpoint verified" });
-      }
-
-      // For actual webhook events, verify signature
-      if (!cloverService.verifySignature(signature, rawBody)) {
-        logger.warn({ signature }, "Invalid Clover signature");
-        return res.status(401).json({ message: "Invalid Clover signature" });
+      // Verify webhook authenticity
+      // Clover may send either x-clover-signature (HMAC) or x-clover-auth (webhook secret)
+      if (cloverAuth) {
+        // Verify using x-clover-auth header (matches webhook verification code)
+        if (cloverAuth !== cloverService.env.CLOVER_WEBHOOK_SECRET) {
+          logger.warn({ cloverAuth: "***" }, "Invalid x-clover-auth header");
+          return res.status(401).json({ message: "Invalid Clover authentication" });
+        }
+        logger.info("Webhook authenticated via x-clover-auth header");
+      } else if (signature) {
+        // Verify using x-clover-signature header (HMAC signature)
+        if (!cloverService.verifySignature(signature, rawBody)) {
+          logger.warn("Invalid Clover HMAC signature");
+          return res.status(401).json({ message: "Invalid Clover signature" });
+        }
+        logger.info("Webhook authenticated via x-clover-signature header");
+      } else {
+        // No authentication provided - might be initial verification
+        if (!req.body || Object.keys(req.body).length === 0) {
+          logger.info("Empty body, treating as verification request");
+          return res.status(200).json({ message: "Webhook endpoint verified" });
+        }
+        logger.warn("No authentication headers present on non-empty request");
+        return res.status(401).json({ message: "Missing authentication" });
       }
 
       const event = CloverWebhookSchema.parse(req.body);
