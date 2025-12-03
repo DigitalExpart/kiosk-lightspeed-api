@@ -209,7 +209,11 @@ export class CloverService {
   }
 
   async fetchOrder(orderId: string): Promise<CloverOrder> {
+    let order: any;
+    let hasExpandedData = true;
+
     try {
+      // Try fetching with expanded fields first (full order data)
       const response = await withRetry(
         async () => {
           return await this.client.get(`/orders/${orderId}`, {
@@ -224,10 +228,51 @@ export class CloverService {
         }
       );
 
-      const order = response.data;
+      order = response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+
+      // If 403 (permission error), try fetching without expand
+      if (axiosError.response?.status === 403) {
+        logger.warn(
+          { orderId },
+          "Token lacks permission for expanded fields, fetching basic order data"
+        );
+
+        try {
+          const basicResponse = await withRetry(
+            async () => {
+              return await this.client.get(`/orders/${orderId}`);
+            },
+            {
+              maxAttempts: 3,
+              initialDelayMs: 1000,
+            }
+          );
+
+          order = basicResponse.data;
+          hasExpandedData = false;
+        } catch {
+          // If even basic fetch fails, rethrow original error
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    try {
 
       if (!order) {
         throw new Error(`Order ${orderId} not found in Clover`);
+      }
+
+      // Warn if we couldn't get expanded data
+      if (!hasExpandedData) {
+        logger.warn(
+          { orderId, hasLineItems: !!order.lineItems },
+          "Using basic order data - line items and details may be incomplete"
+        );
       }
 
       const items = (order?.lineItems?.elements ?? []).map((item: any) => {
