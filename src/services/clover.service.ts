@@ -185,6 +185,29 @@ export class CloverService {
     return timingSafeEqual(signatureBuffer, computedBuffer);
   }
 
+  verifyWebhookAuth(authToken: string | undefined): boolean {
+    const secret = this.env.CLOVER_WEBHOOK_SECRET;
+
+    if (!secret) {
+      // If no secret configured, allow for development/testing
+      return true;
+    }
+
+    if (!authToken) {
+      return false;
+    }
+
+    // Use timing-safe comparison to prevent timing attacks
+    const tokenBuffer = Buffer.from(authToken);
+    const secretBuffer = Buffer.from(secret);
+
+    if (tokenBuffer.length !== secretBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(tokenBuffer, secretBuffer);
+  }
+
   async fetchOrder(orderId: string): Promise<CloverOrder> {
     try {
       const response = await withRetry(

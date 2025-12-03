@@ -88,8 +88,8 @@ export const createWebhookRouter = ({
       // Clover may send either x-clover-signature (HMAC) or x-clover-auth (webhook secret)
       if (cloverAuth) {
         // Verify using x-clover-auth header (matches webhook verification code)
-        if (cloverAuth !== cloverService.env.CLOVER_WEBHOOK_SECRET) {
-          logger.warn({ cloverAuth: "***" }, "Invalid x-clover-auth header");
+        if (!cloverService.verifyWebhookAuth(cloverAuth)) {
+          logger.warn("Invalid x-clover-auth header");
           return res.status(401).json({ message: "Invalid Clover authentication" });
         }
         logger.info("Webhook authenticated via x-clover-auth header");
