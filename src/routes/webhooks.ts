@@ -75,14 +75,23 @@ export const createWebhookRouter = ({
       const signature =
         req.header("x-clover-signature") ?? req.header("X-Clover-Signature") ?? undefined;
 
-      // Handle webhook verification requests (may not have signature or may have different format)
-      // If no signature and body is empty or simple, likely a verification request
-      if (!signature && (!req.body || Object.keys(req.body).length === 0)) {
+      // Log all incoming requests for debugging verification issues
+      logger.info({ 
+        body: req.body, 
+        headers: req.headers,
+        signature: signature ? "present" : "absent"
+      }, "Received webhook request");
+
+      // Handle webhook verification requests
+      // Clover may send verification with or without signature during setup
+      if (!signature) {
+        logger.info("No signature present - treating as verification request");
         return res.status(200).json({ message: "Webhook endpoint verified" });
       }
 
       // For actual webhook events, verify signature
-      if (signature && !cloverService.verifySignature(signature, rawBody)) {
+      if (!cloverService.verifySignature(signature, rawBody)) {
+        logger.warn({ signature }, "Invalid Clover signature");
         return res.status(401).json({ message: "Invalid Clover signature" });
       }
 
