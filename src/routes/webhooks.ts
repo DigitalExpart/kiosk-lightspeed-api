@@ -141,6 +141,10 @@ export const createWebhookRouter = ({
             "Processing Clover order event"
           );
 
+          // Small delay to handle Clover API race condition
+          // Webhook can arrive before order is fully committed to API
+          await new Promise(resolve => setTimeout(resolve, 500));
+
           // Check if webhook payload contains full order data (E-commerce API)
           // E-commerce API webhooks may include the full order in the payload
           if (event.payload && typeof event.payload === "object") {

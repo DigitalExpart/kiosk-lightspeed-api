@@ -83,8 +83,11 @@ function isRetryableError(error: any, options: Required<RetryOptions>): boolean 
 
   // Don't retry client errors (4xx) except for specific ones
   if (statusCode && statusCode >= 400 && statusCode < 500) {
-    // Only retry on 408 (Request Timeout) and 429 (Too Many Requests)
-    return statusCode === 408 || statusCode === 429;
+    // Retry on:
+    // - 408 (Request Timeout)
+    // - 429 (Too Many Requests)
+    // - 404 (Not Found) - for Clover API race conditions where webhook arrives before order is committed
+    return statusCode === 408 || statusCode === 429 || statusCode === 404;
   }
 
   return false;

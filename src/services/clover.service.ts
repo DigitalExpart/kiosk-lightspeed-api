@@ -223,8 +223,10 @@ export class CloverService {
           });
         },
         {
-          maxAttempts: 3,
-          initialDelayMs: 1000,
+          maxAttempts: 5,
+          initialDelayMs: 1500,
+          maxDelayMs: 8000,
+          backoffMultiplier: 2,
         }
       );
 
@@ -245,8 +247,10 @@ export class CloverService {
               return await this.client.get(`/orders/${orderId}`);
             },
             {
-              maxAttempts: 3,
-              initialDelayMs: 1000,
+              maxAttempts: 5,
+              initialDelayMs: 1500,
+              maxDelayMs: 8000,
+              backoffMultiplier: 2,
             }
           );
 
