@@ -10,8 +10,8 @@ const start = async () => {
     const app = await createServer();
     const port = env.PORT;
 
-    server = app.listen(port, () => {
-      logger.info({ port }, "Clover-Lightspeed bridge listening");
+    server = app.listen(port, "0.0.0.0", () => {
+      logger.info({ port, host: "0.0.0.0" }, "Clover-Lightspeed bridge listening");
     });
 
     // Graceful shutdown handling

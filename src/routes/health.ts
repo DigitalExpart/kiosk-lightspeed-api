@@ -15,11 +15,22 @@ export const createHealthRouter = () => {
       services: {
         clover: {
           configured: Boolean(env.CLOVER_MERCHANT_ID && env.CLOVER_ACCESS_TOKEN),
+          hasMerchantId: !!env.CLOVER_MERCHANT_ID,
+          hasAccessToken: !!env.CLOVER_ACCESS_TOKEN,
         },
         lightspeed: {
           configured: Boolean(
-            env.LIGHTSPEED_ACCOUNT_ID && (env.LIGHTSPEED_PERSONAL_TOKEN || env.LIGHTSPEED_REFRESH_TOKEN)
+            (env.LIGHTSPEED_DOMAIN || env.LIGHTSPEED_ACCOUNT_ID) &&
+            env.LIGHTSPEED_SHOP_ID &&
+            (env.LIGHTSPEED_PERSONAL_TOKEN || env.LIGHTSPEED_REFRESH_TOKEN)
           ),
+          hasDomain: !!env.LIGHTSPEED_DOMAIN,
+          hasAccountId: !!env.LIGHTSPEED_ACCOUNT_ID,
+          hasShopId: !!env.LIGHTSPEED_SHOP_ID,
+          hasToken: !!(env.LIGHTSPEED_PERSONAL_TOKEN || env.LIGHTSPEED_REFRESH_TOKEN),
+        },
+        webhooks: {
+          hasWebhookSecret: !!(env.CLOVER_WEBHOOK_SECRET || env.WEBHOOK_SIGNATURE_SECRET),
         },
         queue: {
           configured: Boolean(env.QUEUE_URL && env.AWS_REGION),
@@ -35,7 +46,7 @@ export const createHealthRouter = () => {
       const checks: Record<string, boolean> = {
         clover: Boolean(env.CLOVER_MERCHANT_ID && env.CLOVER_ACCESS_TOKEN),
         lightspeed: Boolean(
-          env.LIGHTSPEED_ACCOUNT_ID &&
+          (env.LIGHTSPEED_DOMAIN || env.LIGHTSPEED_ACCOUNT_ID) &&
             env.LIGHTSPEED_SHOP_ID &&
             (env.LIGHTSPEED_PERSONAL_TOKEN || env.LIGHTSPEED_REFRESH_TOKEN)
         ),

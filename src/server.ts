@@ -39,6 +39,20 @@ export const createServer = async () => {
   const orderMapper = new OrderMapper();
   const deduplicator = new OrderDeduplicator();
 
+  // Root route for basic service verification
+  app.get("/", (_req, res) => {
+    res.json({
+      service: "Clover-Lightspeed Bridge",
+      status: "running",
+      version: "1.0.0",
+      endpoints: {
+        health: "/health",
+        webhooks: "/webhooks/clover/orders",
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   app.use("/health", createHealthRouter());
   const queueService = env.USE_QUEUE ? new OrderQueueService(env) : undefined;
 
